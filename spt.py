@@ -11,17 +11,12 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------------- DARK MODE TOGGLE ----------------
+# ---------------- DARK MODE ----------------
 dark_mode = st.sidebar.toggle("🌙 Dark Mode")
 
-if dark_mode:
-    bg_color = "#0E1117"
-    text_color = "white"
-else:
-    bg_color = "#F5F7FA"
-    text_color = "black"
+bg_color = "#0E1117" if dark_mode else "#F5F7FA"
+text_color = "white" if dark_mode else "black"
 
-# ---------------- CUSTOM CSS ----------------
 st.markdown(f"""
 <style>
 body {{
@@ -33,12 +28,6 @@ body {{
     font-size: 42px;
     font-weight: bold;
     color: #4A90E2;
-}}
-.card {{
-    padding: 20px;
-    border-radius: 15px;
-    background: white;
-    box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
 }}
 </style>
 """, unsafe_allow_html=True)
@@ -53,16 +42,18 @@ st.sidebar.header("📥 Enter Student Details")
 attendance = st.sidebar.slider("Attendance (%)", 0, 100, 75)
 study_hours = st.sidebar.slider("Study Hours", 0, 10, 3)
 assignments = st.sidebar.slider("Assignments Completed", 0, 10, 5)
+previous_marks = st.sidebar.slider("Previous Marks (%)", 0, 100, 70)
 
 # ---------------- DATASET ----------------
 data = pd.DataFrame({
     'attendance': [80, 60, 90, 50, 70, 85, 40],
     'study_hours': [3, 1, 4, 1, 2, 5, 1],
     'assignments': [5, 2, 6, 1, 3, 7, 1],
+    'previous_marks': [75, 50, 88, 40, 65, 90, 35],
     'result': [1, 0, 1, 0, 1, 1, 0]
 })
 
-X = data[['attendance', 'study_hours', 'assignments']]
+X = data[['attendance', 'study_hours', 'assignments', 'previous_marks']]
 y = data['result']
 
 model = RandomForestClassifier()
@@ -77,9 +68,14 @@ with tab1:
 
     if st.button("🚀 Predict Now"):
 
-        prediction = model.predict([[attendance, study_hours, assignments]])
+        prediction = model.predict([[attendance, study_hours, assignments, previous_marks]])
 
-        score = (attendance * 0.4 + study_hours * 10 * 0.3 + assignments * 10 * 0.3)
+        score = (
+            attendance * 0.3 +
+            study_hours * 10 * 0.2 +
+            assignments * 10 * 0.2 +
+            previous_marks * 0.3
+        )
 
         st.progress(int(score))
 
@@ -94,9 +90,8 @@ with tab1:
 with tab2:
     st.subheader("📊 Performance Analytics")
 
-    # Chart Data
-    labels = ['Attendance', 'Study Hours', 'Assignments']
-    values = [attendance, study_hours * 10, assignments * 10]
+    labels = ['Attendance', 'Study Hours', 'Assignments', 'Previous Marks']
+    values = [attendance, study_hours * 10, assignments * 10, previous_marks]
 
     fig, ax = plt.subplots()
     ax.bar(labels, values)
@@ -104,10 +99,9 @@ with tab2:
 
     st.pyplot(fig)
 
-    # Comparison chart
     st.write("### 📉 Comparison with Average Student")
 
-    avg = [70, 30, 50]
+    avg = [70, 30, 50, 65]
     your = values
 
     fig2, ax2 = plt.subplots()
@@ -141,13 +135,20 @@ with tab3:
     else:
         st.success("✅ Assignment performance is good")
 
+    if previous_marks < 60:
+        st.warning("📌 Focus on improving conceptual understanding")
+    else:
+        st.success("✅ Previous academic performance is strong")
+
     st.markdown("---")
     st.write("### 🧠 AI Advice")
 
-    if attendance < 60 and study_hours < 2:
-        st.error("⚠️ High risk: Focus on discipline and daily study routine")
-    elif score := (attendance + study_hours*10 + assignments*10)/3 > 70:
-        st.success("🎯 You are on track for excellent performance!")
+    overall = (attendance + study_hours*10 + assignments*10 + previous_marks) / 4
+
+    if overall < 50:
+        st.error("⚠️ High risk: Immediate improvement needed")
+    elif overall > 75:
+        st.success("🎯 Excellent performance trend!")
     else:
         st.info("📈 Moderate performance — keep improving steadily")
 
